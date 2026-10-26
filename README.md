@@ -1,6 +1,6 @@
 # Research Meeting Notes
 
-**Participants:** Tiange Lyu (TG Lyu), Zheng-Lin Lin (ZL Lin)  
+**Participants:** Tiange Lyu (TG Lyu), Zheng-Lin Lin (ZL Lin), Anni Wang, Yiting Tong
 **Project:** Knowledge Conflict Resolution and Evidence Preferences in Decision-Oriented and General-Purpose Language Models  
 **Primary Focus:** Jev & OpenAI Decisions API vs. General-Purpose LLMs  
 **Target:** Initial arXiv submission by mid-December 2026
