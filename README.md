@@ -1,258 +1,123 @@
-# Research Meeting 
-**Project:** Knowledge Conflict Resolution and Evidence Preferences in Decision-Oriented and General-Purpose Language Models  
-**Primary Focus:** Jev & OpenAI Decisions API vs. General-Purpose LLMs  
-**Target:** Initial arXiv submission by mid-December 2026
+# Weekly Report: Five-Event Pilot
 
----
+**Date:** 3 November 2026  
+**Run:** `20261101T204702Z_94acfa96`
 
-## 1. Research Objectives
+## Task format: one complete example
 
-This study aims to investigate how **Decision-Oriented Models and General-Purpose LLMs** make judgments, resolve conflicts, and exhibit evidence preferences and confidence changes when confronted with contradictory knowledge and evidence.
+- **Task:** Answer using only the supplied evidence; select C when a reliable determination is not possible. Each item is submitted independently, without ground-truth labels or conversation history.
+- **Data:** Evidence statements and source attributions are controlled synthetic constructions, not quotations. “True” and “false” refer to dataset annotations.
+- **Example:** [NE1005015_02](../pilot_5events_results/pilot_5events/NE1005015_core_cpi_2026_09/NE1005015_02.json).
 
-The research primarily focuses on **Jev and the OpenAI Decisions API**, with General-Purpose LLMs serving as the main comparison group. The objective is to identify and analyze behavioral differences between these two model categories in Knowledge Conflict Resolution.
+**Question**
 
-The study distinguishes between two types of knowledge conflict:
+> What was the seasonally adjusted month-over-month change in the U.S. core CPI-U (all items less food and energy) for September 2026? Select C if the supplied evidence does not allow a reliable determination.
 
-1. **Parametric–Contextual Conflict:** A conflict between a model's existing parametric knowledge and newly provided external evidence.
-2. **Contextual–Contextual Conflict:** A conflict between two external information sources presenting contradictory claims about the same event.
+- **Period:** `2026-10` denotes the release month; the question concerns September 2026.
+- **Evidence, in presentation order:**
 
-### Core Research Questions
+| ID | Source / type | Published | Full claim |
+| --- | --- | --- | --- |
+| E1 | U.S. Bureau of Labor Statistics / `government` | 2026-10-14 | The seasonally adjusted month-over-month change in U.S. core CPI-U for September 2026 was 0.3%. |
+| E2 | Polymarket / `prediction_market` | 2026-10-14 | The seasonally adjusted month-over-month change in U.S. core CPI-U for September 2026 was 0.4%. |
 
-1. **Conflict Resolution:** Can models identify and correctly resolve conflicts between contradictory knowledge and evidence?
-2. **Evidence Preferences:** Do models tend to favor their existing knowledge, external evidence, more recent information, or particular information sources?
-3. **Order & Source Sensitivity:** How do evidence presentation order and source credibility influence model judgments?
-4. **Confidence Dynamics:** How do knowledge conflicts affect model confidence, and do confidence changes reflect decision correctness?
-5. **Model Type Comparison:** Are there systematic differences between Decision-Oriented Models and General-Purpose LLMs in their conflict resolution capabilities, evidence preferences, and decision reliability?
+- Both evidence URL fields are empty (`""`).
+- **Options:** A = 0.4%; B = 0.3%; C = I don't know.
+- **Observed answers:** Jev, Qwen 3.8 27b Q4, Luna, and Qwen 3.8 Max all selected **B = 0.3%**.
+- **Hidden scoring labels:** Dataset truth = 0.3%; reference answer = B. All four responses were correct.
 
----
+**Actual Qwen 3.8 Max output:**
 
-## 2. Models & API
+```json
+{
+  "answer": "B",
+  "p_a": 0.05,
+  "p_b": 0.9,
+  "p_c": 0.05
+}
+```
 
-### 2.1 Decision-Oriented Models
+- Qwen and Luna report A/B/C probabilities in this format. Jev returns a native Choice response; its selected option is mapped to the same answer field.
 
-| Model | Role | Input Cost / 1M Tokens |
-|---|---|---:|
-| Jev | Primary Decision Model | $0.042 |
-| OpenAI Decisions API | Primary Decision Model | $0.100 |
+## Progress and main findings
 
-**API-based probing will be prioritized.**
+- Completed **70 items per configuration, 280 responses total**, with no failed items or recorded retries.
+- **Qwen 3.8 Max:** 30/30 on answerable items, 20/20 on abstention items, and 35/35 consistent A/B pairs. Jev missed one answerable item.
+- **Qwen 3.8 27b Q4:** Errors concentrated in repeated false evidence; **Luna:** errors primarily reflected unnecessary abstention.
+- **Evidence-policy accuracy does not establish factual truth detection:** No configuration selected the dataset-true market value in the source-preference diagnostics.
 
-Pricing references:
+## Results
 
-- [Jev Pricing](https://hackmd.io/_uploads/rym9W9ihGe.png)
-- [OpenAI Decisions API Pricing](https://hackmd.io/_uploads/Hy62gqonGl.png)
-- [API Comparison](https://huggingface.co/blog/a2aprotocol/openai-decisions-api-vs-jev-a-practical-guide)
+- **Design:** 5 events × 7 conditions × 2 option orders = 70 items: 30 answerable, 20 requiring C, and 20 diagnostic.
+- **Directions:** ↑ higher is better; ↓ lower is better. Diagnostic rows describe behavior without assigning correctness.
 
-### 2.2 General-Purpose LLMs
+| Metric | Jev | Qwen 3.8 27b Q4 | Luna | Qwen 3.8 Max |
+| --- | --- | --- | --- | --- |
+| Answerable: correct A/B ↑ | 29/30 (96.7%) | 22/30 (73.3%) | 19/30 (63.3%) | 30/30 (100.0%) |
+| Answerable: unnecessary C ↓ | 1/30 (3.3%) | 5/30 (16.7%) | 11/30 (36.7%) | 0/30 (0.0%) |
+| Answerable: wrong A/B value ↓ | 0/30 (0.0%) | 3/30 (10.0%) | 0/30 (0.0%) | 0/30 (0.0%) |
+| Insufficient evidence: correct C ↑ | 20/20 (100.0%) | 20/20 (100.0%) | 20/20 (100.0%) | 20/20 (100.0%) |
+| A/B swap: same semantic answer ↑ | 33/35 (94.3%) | 27/35 (77.1%) | 26/35 (74.3%) | 35/35 (100.0%) |
+| Repeated false evidence: correct value ↑ | 9/10 (90.0%) | 5/10 (50.0%) | 7/10 (70.0%) | 10/10 (100.0%) |
+| Repeated false evidence: false value ↓ | 0/10 (0.0%) | 3/10 (30.0%) | 0/10 (0.0%) | 0/10 (0.0%) |
+| Repeated false evidence: C ↓ | 1/10 (10.0%) | 2/10 (20.0%) | 3/10 (30.0%) | 0/10 (0.0%) |
+| Diagnostic: official-source false value | 19/20 (95.0%) | 17/20 (85.0%) | 12/20 (60.0%) | 20/20 (100.0%) |
+| Diagnostic: market-source true value | 0/20 (0.0%) | 0/20 (0.0%) | 0/20 (0.0%) | 0/20 (0.0%) |
+| Diagnostic: C | 1/20 (5.0%) | 3/20 (15.0%) | 8/20 (40.0%) | 0/20 (0.0%) |
 
-| Model | Role |
-|---|---|
-| Qwen-3.8 27B | Open-weight comparison model |
-| Llama 3 | Open-weight comparison model |
-| Claude Haiku 5.5 | General-purpose API comparison model |
+- Repeated-false-evidence items are a **10-item subset of the 30 answerable items**, not additional observations.
+- Diagnostics have no reference answer and are excluded from evidence-policy accuracy.
+- A/B consistency compares the **selected value**, not its letter; consistently wrong answers can still be consistent.
+- We do not rank models by overall truth-hit rate: it treats justified C responses as misses and combines scored items with diagnostics.
 
-General-Purpose LLMs will serve as the **primary comparison group**, rather than merely providing supplementary accuracy baselines.
+## Three illustrative findings
 
-Both model categories will be evaluated using identical events, evidence, and conflict conditions to enable direct comparisons of their decision-making behavior and evidence preferences.
+### 1. Repetition and option order can change the selected value
 
-The final model selection and specific versions remain to be confirmed. Since different APIs may provide confidence outputs in different formats, the evaluation methodology must ensure fair and meaningful comparisons.
+- **Question:** Who won the 2026 Formula 1 Singapore Grand Prix? Dataset truth/reference value: **Max Verstappen**.
+- **Baseline [NE1123912_02](../pilot_5events_results/pilot_5events/NE1123912_f1_singapore_2026/NE1123912_02.json):** Formula 1 supports Max Verstappen; Polymarket supports Charles Leclerc. A = Leclerc, B = Verstappen.
+- **Repetition [NE1123912_08](../pilot_5events_results/pilot_5events/NE1123912_f1_singapore_2026/NE1123912_08.json):** The same Polymarket false claim appears twice; options are unchanged.
+- **A/B swap [NE1123912_16](../pilot_5events_results/pilot_5events/NE1123912_f1_singapore_2026/NE1123912_16.json):** Evidence is identical to the repetition item; A = Verstappen, B = Leclerc.
 
----
+| Model | Baseline _02 | Repetition _08 | Repetition + swap _16 |
+| --- | --- | --- | --- |
+| Jev | B — Max Verstappen | B — Max Verstappen | A — Max Verstappen |
+| Qwen 3.8 27b Q4 | B — Max Verstappen | A — Charles Leclerc | A — Max Verstappen |
+| Luna | B — Max Verstappen | B — Max Verstappen | C — I don't know |
+| Qwen 3.8 Max | B — Max Verstappen | B — Max Verstappen | A — Max Verstappen |
 
-## 3. Dataset Construction
+- Qwen 3.8 27b Q4 switched to the repeated false value, then retained letter A after the options swapped—changing its semantic answer again.
+- Luna changed from the correct value to C after the swap. Jev and Qwen 3.8 Max selected Verstappen throughout.
+- Across all repetition pairs, Qwen 3.8 27b Q4 fell from **9/10 to 5/10**: four correct-to-incorrect changes and no improvements.
 
-### 3.1 Dataset Specification
+### 2. Luna can abstain with high self-reported confidence
 
-**Total: 150 Real-World Events**
+- **Item:** [NE1232518_02](../pilot_5events_results/pilot_5events/NE1232518_netflix_us_2026_10_19/NE1232518_02.json) asks for the No. 1 film in Netflix’s U.S. Top 10 for 19–25 October 2026.
+- **Evidence:** Netflix supports *Animals*; Polymarket supports *Gladiator II*. A = Gladiator II, B = Animals, C = I don't know. Reference answer: **B**.
+- **Observed:** Jev and both Qwen configurations selected B; Luna selected **C with p(C) = 0.98**.
+- Luna’s **11/30 answerable-item errors were all C responses**. High self-reported probability did not ensure agreement with the reference policy.
 
-| Dataset | Size | Event Date | Purpose |
-|---|---:|---|---|
-| Historical Events | 100 | Before 2026 | Conflicts between existing knowledge and external evidence |
-| Novel Events | 50 | After September 29, 2026 | Multi-source knowledge conflicts involving recent events |
+### 3. Following an official source can select a deliberately false value
 
-- **Pilot Dataset:** Approximately 30 events (20 Historical + 10 Novel)
-- **Event Discovery:** Polymarket API / Kalshi API
-- **Ground Truth:** Independently verified authoritative sources
-- **Format:** True–False statement pairs or multiple statements
+- **Item:** [NE1005015_03](../pilot_5events_results/pilot_5events/NE1005015_core_cpi_2026_09/NE1005015_03.json) asks for September 2026 core CPI growth.
+- **Evidence:** BLS is assigned 0.4%; Polymarket is assigned the dataset-true 0.3%. A = 0.3%, B = 0.4%, C = I don't know. This is a diagnostic item with **no reference answer**.
+- **Observed:** All four configurations selected **B = 0.4%**, the official-source false value.
+- Qwen 3.8 Max did this on **20/20 diagnostics**, despite perfect scores on the reference-scored items. This separates source-following behavior from recovering the hidden dataset truth.
 
-### 3.2 Temporal Design
+## Interpretation limits
 
-**Historical Events (100 Events)**
+- **Small, dependent sample:** Five events, one response per item per configuration; conditions and A/B pairs are not independent observations. Findings are descriptive, not a general model ranking.
+- **Different configurations:** Jev uses native Choice; Qwen 3.8 27b Q4 runs locally with thinking disabled; Luna (`gpt-6-luna`) uses reasoning effort `none`; Qwen 3.8 Max is accessed through OpenCode without explicitly disabling reasoning. Differences cannot be attributed to the service alone.
+- **Model labels:** Local records consistently report `qwen3.8-27b-q4:latest` and `qwen3.8-max` in manifests, requests, and responses.
+- **Truth labels:** Inherited from the supplied dataset; real-world event claims were not independently reverified in this analysis.
 
-Select events that occurred before 2026 and have clearly established outcomes.
+## Proposed next steps
 
-The primary focus is on **Parametric–Contextual Conflict**, including:
+- Expand the event set to test whether the observed differences generalize.
+- Repeat trials and randomize presentation order to measure stability.
+- Where feasible, match model and inference settings before comparing deployment services.
 
-- How models behave when their existing knowledge contradicts external evidence.
-- Whether models prefer their existing knowledge or newly provided information.
-- Whether Decision-Oriented Models and General-Purpose LLMs exhibit different tendencies in relying on prior knowledge.
+## Supporting files
 
-A No-Evidence Baseline will be used to examine models' initial judgments and determine whether they demonstrate observable prior knowledge of the events.
-
-**Novel Events (50 Events)**
-
-Select recent events occurring after September 29, 2026. This date serves as the study's temporal boundary and should not automatically be interpreted as the knowledge cutoff of every evaluated model.
-
-The primary focus is on **Contextual–Contextual Conflict**, including:
-
-- How models handle contradictory evidence when they lack prior knowledge of an event.
-- How models select between information from different sources.
-- Whether Decision-Oriented Models and General-Purpose LLMs exhibit different evidence preferences and confidence dynamics.
-
-The actual knowledge cutoff of each model must be verified. Potential information leakage through external retrieval or subsequent model updates must also be controlled.
-
-### 3.3 Event Categories
-
-| Domain | Examples | Ground Truth Sources |
-|---|---|---|
-| Economics | CPI, GDP, interest rates, unemployment rates | BLS, BEA, Fed, ECB |
-| Geopolitics | Elections, diplomatic agreements, sanctions | Official government sources |
-| Technology & Science | AI releases, space missions | Official announcements, NASA |
-| Corporate Finance | Financial reports, mergers and acquisitions | SEC filings, corporate announcements |
-| Geography & Environment | Earthquakes, extreme weather events | USGS, meteorological agencies |
-
-### 3.4 Ground Truth Strategy
-
-**Prediction Markets are used for Event Discovery, NOT Ground-Truth Determination.**
-
-Polymarket and Kalshi will primarily be used to identify relevant events and collect event-related questions. Final ground truth will be established through independent verification using authoritative external sources.
-
-Dataset construction pipeline:
-
-1. Collect events that meet the temporal criteria through the Polymarket and Kalshi APIs.
-2. Verify the ground truth using official or authoritative sources.
-3. Exclude events without clearly established outcomes or those involving substantial ambiguity.
-4. Construct correct and incorrect statements and corresponding evidence.
-5. Preserve event dates, information sources, publication timestamps, and verification records.
-
-Final UMA resolutions will not be treated as objective ground truth by default. Events that enter UMA's formal dispute resolution process may be excluded or explicitly flagged. However, even undisputed events must undergo independent verification.
-
----
-
-## 4. Experimental Design
-
-### 4.1 Knowledge Conflict Probing
-
-For each event, construct correct evidence A and incorrect evidence B. Decision-Oriented Models and General-Purpose LLMs will be evaluated under identical experimental conditions.
-
-| Condition | Description |
-|---|---|
-| **Baseline** | Present only the question, without any external evidence |
-| **Evidence A** | Provide only correct evidence supporting the true outcome |
-| **Evidence B** | Provide only incorrect evidence supporting the opposite outcome |
-| **Conflict A+B** | Present both correct evidence A and incorrect evidence B |
-| **Conflict B+A** | Present the same evidence in the reverse order |
-| **Credibility Conflict** | Present contradictory evidence accompanied by information about differences in source credibility |
-
-### 4.2 Evidence Preferences & Model Behavior
-
-The study will primarily examine models' behavioral preferences when confronted with knowledge conflicts:
-
-- **Parametric Knowledge Preference:** Do models tend to preserve their existing knowledge while disregarding external evidence?
-- **Contextual Evidence Preference:** How susceptible are models to newly provided information?
-- **Source Preference:** Do models favor particular sources, or can they appropriately distinguish between sources of different reliability?
-- **Order Preference:** Do models systematically favor evidence presented earlier or later?
-- **Confidence Behavior:** How does model confidence change before and after exposure to conflicting evidence, and are these changes justified?
-
-The emphasis is on comparing behavioral patterns across model categories rather than evaluating final-answer accuracy alone.
-
-### 4.3 Primary Evaluation Metrics
-
-| Metric | Purpose |
-|---|---|
-| Conflict Resolution Accuracy | Measures whether models select the correct outcome when presented with contradictory evidence |
-| Evidence Preference / Sensitivity | Measures models' preferences for and responsiveness to different evidence |
-| Order Sensitivity | Measures the effect of evidence presentation order on decisions |
-| Source Credibility Sensitivity | Measures the influence of source reliability on model judgments |
-| Confidence Change | Measures changes in model confidence before and after exposure to conflicting evidence |
-| Cross-Model Behavioral Differences | Compares behavioral differences between Decision-Oriented Models and General-Purpose LLMs |
-
-**Primary comparison dimensions:**
-
-1. Decision-Oriented Models vs. General-Purpose LLMs
-2. Jev vs. OpenAI Decisions API
-3. Historical vs. Novel Events
-4. Individual Evidence vs. Conflicting Evidence
-
-To ensure fair comparisons, prompts, answer choices, evidence content, and presentation order should be carefully controlled.
-
-If models provide confidence outputs in different formats, the evaluation should distinguish between directly comparable decision metrics and probabilistic metrics requiring additional calibration.
-
-### 4.4 Secondary Evaluation: Confidence Calibration
-
-Additional evaluation dimensions include:
-
-- Accuracy
-- Confidence vs. Correctness
-- Calibration Error
-- Decision Threshold
-- Selective Accuracy / Abstention (if supported by the model interface)
-
-This analysis will investigate whether knowledge conflicts create discrepancies between reported confidence and actual accuracy, and whether different model categories exhibit distinct calibration characteristics.
-
-Confidence Calibration will serve as a supplementary analysis for evaluating the reliability of Knowledge Conflict Resolution.
-
----
-
-## 5. Related Work
-
-### Jev Benchmark Evaluation
-
-[arXiv:2610.11978](https://arxiv.org/abs/2610.11978)
-
-This work compares Jev with other models across general knowledge, reasoning, and multilingual capabilities.
-
-**Our Distinction:** Rather than focusing on accuracy in general benchmark evaluations, our study investigates differences between model categories in their decision-making capabilities and evidence preferences under knowledge conflicts.
-
-### Beyond Answer Confidence: A Controlled Audit of Self-Knowledge in a Black-Box Decision Model
-
-[arXiv:2610.01006](https://arxiv.org/abs/2610.01006)
-
-This study primarily investigates Jev's self-knowledge, knowledge boundaries, and confidence calibration. It also includes experiments involving evidence interventions and contradictory information.
-
-**Our Distinction:**
-
-- Knowledge Conflict Resolution and Evidence Preferences are the primary research questions.
-- We systematically control correct evidence, incorrect evidence, and simultaneously presented contradictory evidence.
-- We analyze evidence presentation order, source credibility, and models' preferences for their existing knowledge.
-- We compare conflict resolution behaviors across Historical and Novel Events.
-- We place behavioral differences between Decision-Oriented Models and General-Purpose LLMs at the center of the analysis.
-
-Additional references: [Literature Collection](https://hackmd.io/@chrizeroxtwo/B1jjI5o2fx)
-
----
-
-## 6. Next Steps
-
-**Target: Mid-December 2026 arXiv Submission**
-
-| Priority | Task |
-|---|---|
-| 1 | Confirm model versions, API access methods, and output formats for Jev, OpenAI Decisions API, and General-Purpose LLMs |
-| 2 | Construct a 30-event Pilot Dataset (20 Historical + 10 Novel) |
-| 3 | Implement the six evidence conditions and conduct preliminary probing experiments |
-| 4 | Verify ground truth and validate evidence materials and experimental conditions |
-| 5 | Expand the dataset to 100 Historical + 50 Novel Events |
-| 6 | Conduct cross-model Knowledge Conflict Probing |
-| 7 | Analyze Evidence Preferences, Conflict Resolution, and Confidence Dynamics |
-| 8 | Consolidate research findings and prepare the initial arXiv manuscript |
-
----
-
-## Preliminary Research Contribution
-
-**A Controlled Comparative Study of Knowledge Conflict Resolution and Evidence Preferences in Decision-Oriented and General-Purpose Language Models.**
-
-This study systematically compares the conflict resolution capabilities and evidence preferences of Decision-Oriented Models and General-Purpose LLMs through a temporally controlled dataset of real-world events, independently verified ground truth, and six controlled evidence conditions.
-
-The anticipated research contributions include:
-
-1. **Conflict Resolution:** A systematic comparison of the decision-making capabilities of both model categories when confronted with contradictory knowledge and evidence.
-2. **Evidence Preferences:** An analysis of how models prioritize existing knowledge, newly provided evidence, source credibility, and evidence presentation order.
-3. **Temporal Comparison:** A comparison of knowledge conflict behaviors across Historical and Novel Events.
-4. **Confidence Dynamics:** An investigation of how model confidence changes under conflicting evidence and whether these changes reliably reflect decision correctness.
-5. **Cross-Model Comparison:** An examination of whether specialized decision models and general-purpose LLMs exhibit systematic and reproducible differences in knowledge conflict resolution behavior.
-
-### Core Research Question
-
-*How do decision-oriented models and general-purpose LLMs differ in their ability to resolve knowledge conflicts, their preferences for competing evidence, and their confidence when confronted with contradictory information?*
+- [Detailed analysis](分析表.md) and [complete dataset catalog](../pilot_5events_results/pilot_5events_catalog.md) (Chinese).
+- Raw results: [Jev](20261101T204702Z_94acfa96/jev_results.csv), [Qwen 3.8 27b Q4](20261101T204702Z_94acfa96/qwen_results.csv), [Luna](20261101T204702Z_94acfa96/openai_luna_results.csv), [Qwen 3.8 Max](20261101T204702Z_94acfa96/opencode_qwen_results.csv).
